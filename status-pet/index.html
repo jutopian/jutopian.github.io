@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Status Pet: free CPU, GPU &amp; RAM monitor with a pixel pet for Windows</title>
+<meta name="description" content="Free CPU, GPU and RAM monitor for Windows 10 / 11. A lightweight desktop gadget with a pixel pet that reacts to how hard your PC is working.">
+<link rel="canonical" href="https://jutopian.github.io/status-pet/">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Status Pet",
+  "description": "A lightweight CPU, GPU and RAM monitor for Windows, with a pixel pet that reacts to how hard your PC is working.",
+  "url": "https://jutopian.github.io/status-pet/",
+  "image": "https://jutopian.github.io/status-pet/og-image.png",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Windows 10, Windows 11",
+  "softwareVersion": "1.0.1",
+  "fileSize": "10MB",
+  "downloadUrl": "https://github.com/jutopian/status-pet/releases/latest",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Person", "name": "jutopian" },
+  "license": "https://opensource.org/licenses/MIT",
+  "sameAs": ["https://www.instagram.com/status.pet_official/", "https://github.com/jutopian/status-pet"]
+}
+</script>
+<meta property="og:title" content="Status Pet">
+<meta property="og:description" content="A lightweight system monitor for Windows, with a pixel pet that reacts to how hard your PC is working.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://jutopian.github.io/status-pet/">
+<meta property="og:image" content="https://jutopian.github.io/status-pet/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Status Pet: a lightweight system monitor for Windows, shown as a compact gadget with a pixel cat in a night yard">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+  img { max-width: 100%; }
+  /* Single dark theme by design (this page IS the app's own dark UI, not a themeable
+     marketing shell), so colors are set explicitly and no light-mode palette is defined. */
+  :root {
+    color-scheme: dark;
+    --ground: #0F0E15; --ground-2: #15131D; --panel: #1E1B26; --edge: #34303F;
+    --ink: #F6F1E4; --dim: #8F88A8; --dim-2: #6A6484;
+    --accent: #9585F0; --accent-soft: #B9ADFF; --star: #FFD86B;
+    --ok: #6FCF9C; --warn: #F2C166; --crit: #F08B7E;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--ground); color: var(--ink); margin: 0;
+         font-family: "Instrument Sans", "Segoe UI", sans-serif; }
+  .side { padding-inline: max(16px, calc((100% - 1120px) / 2)); }
+  h1, h2, h3 { font-family: "Bricolage Grotesque", "Trebuchet MS", sans-serif; margin: 0; text-wrap: balance; }
+  /* small labels (eyebrows, chips, tags): the body sans, a touch bigger and brighter, for readability */
+  .eyebrow { font-family: "Instrument Sans", "Segoe UI", sans-serif; font-size: 13px; font-weight: 600; letter-spacing: .1em;
+             text-transform: uppercase; color: #ABA4C4; margin: 0 0 8px; }
+  canvas { display: block; width: 100%; height: auto; }
+  button, .btn { font-family: inherit; }
+
+  /* ---------- hero ---------- */
+  .hero { background: linear-gradient(var(--ground-2), var(--ground)); padding-block: 80px 32px; }
+  .hero-inner { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr;
+                align-items: center; gap: 64px; text-align: left; }
+  .hero-copy { display: flex; flex-direction: column; align-items: flex-start; }
+  .hero-copy h1 { font-size: clamp(44px, 6vw, 76px); font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .hero-copy .tagline { font-family: "Instrument Sans", "Segoe UI", sans-serif; font-weight: 500;
+                         font-size: clamp(20px, 2.6vw, 27px); color: #ECE9F3; margin: 24px 0 0; max-width: 34ch; }
+  .hero-copy .sub { color: var(--dim); font-size: 16px; line-height: 1.6; margin: 12px 0 0; max-width: 46ch; }
+  .hero-actions { margin-top: 40px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn-ghost { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink);
+               font-weight: 600; font-size: 16px; padding: 11px 22px; border-radius: 999px;
+               border: 1px solid var(--edge); background: rgba(255,255,255,.03); }
+  .btn-ghost:hover { border-color: var(--accent-soft); }
+  .btn-primary, .btn-ghost { transition: background-color .15s ease, border-color .15s ease; }
+  .btn-primary:hover { background: var(--accent-soft); }
+  .btn-ghost:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+  .btn-ghost svg { width: 18px; height: 18px; flex: none; }
+  .dl-os { margin: 14px 0 0; font-size: 14px; color: var(--dim); }
+  .dl-os .os-on { color: var(--ink); font-weight: 600; }
+  .dl-meta { margin: 4px 0 0; font-size: 13px; color: var(--dim); }
+  .dl-meta a { color: var(--accent-soft); }
+  /* Mac / Linux visitors: the download button becomes a "coming soon" label (script at the end) */
+  .btn-primary.is-soon { background: var(--panel); color: var(--dim); box-shadow: inset 0 0 0 1px var(--edge); cursor: default; }
+  .btn-primary.is-soon:hover { background: var(--panel); }
+  .btn-primary { display: inline-block; text-decoration: none; background: var(--accent); color: #14101F; font-weight: 600; font-size: 16px;
+                 padding: 12px 24px; border-radius: 999px; border: none; cursor: pointer; }
+  .btn-primary:focus-visible, .btn-secondary:focus-visible, input:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+  .hero-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-start; margin-top: 24px; }
+  .chip { border: 1px solid var(--edge); border-radius: 999px; padding: 8px 16px;
+          font-family: "Instrument Sans", "Segoe UI", sans-serif; font-size: 13px; font-weight: 500; color: #ABA4C4; }
+  .hero-art { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: 0; }
+  .hero-glow { position: absolute; inset: -50px; z-index: 0; pointer-events: none;
+               background: radial-gradient(closest-side, rgba(185,168,255,.20), transparent 72%); }
+  /* The gadget, drawn in a canvas at the screen's own resolution (see the script at the end):
+     same size and frame as the old hero-photo.png screenshot, but sharp at any zoom. */
+  .hero-photo { position: relative; z-index: 1; width: min(416px, 100%); height: auto; aspect-ratio: 416 / 320;
+                border-radius: 12px; display: block; }
+  @media (max-width: 860px) {
+    .hero-inner { grid-template-columns: 1fr; text-align: center; gap: 40px; }
+    .hero-copy { align-items: center; }
+    .hero-chips, .hero-actions { justify-content: center; }
+  }
+
+  /* ---------- features ---------- */
+  .features-section { padding-block: 24px 96px; }
+  .features-head { text-align: center; margin: 0 auto 24px; }
+  .feature-grid { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 860px) { .feature-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .feature-grid { grid-template-columns: 1fr; } }
+  .feature-card { background: var(--panel); border: 1px solid var(--edge); border-radius: 16px;
+                   padding: 12px 24px 24px; display: flex; flex-direction: column; gap: 16px; }
+  .feature-media { aspect-ratio: 16 / 10; border-radius: 10px; background: var(--ground-2);
+                    border: 1px solid var(--edge); }
+  .feature-media.has-art { display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .feature-media .pet-gif { height: 50%; width: auto; image-rendering: pixelated; display: block; }
+
+  /* in-card carousel: one pet animation at a time, dots + arrows */
+  .carousel { position: relative; overflow: hidden; }
+  .carousel .slide { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+                     opacity: 0; transition: opacity .35s ease; pointer-events: none; }
+  .carousel .slide.on { opacity: 1; }
+  .car-dots { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; justify-content: center; gap: 6px; }
+  .car-dot { width: 6px; height: 6px; padding: 0; border: none; border-radius: 999px; background: var(--edge);
+             cursor: pointer; transition: width .2s ease, background .2s ease; }
+  .car-dot.on { width: 16px; background: var(--accent-soft); }
+  .car-arrow { position: absolute; top: 50%; translate: 0 -50%; width: 24px; height: 24px; padding: 0;
+               border: 1px solid var(--edge); border-radius: 999px; background: var(--panel); color: var(--dim);
+               font-size: 14px; line-height: 1; cursor: pointer; opacity: 0; transition: opacity .2s ease; }
+  .car-arrow.prev { left: 8px; } .car-arrow.next { right: 8px; }
+  .carousel:hover .car-arrow, .car-arrow:focus-visible { opacity: 1; }
+  @media (hover: none) { .car-arrow { opacity: 1; } }
+  .car-dot:focus-visible, .car-arrow:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { .carousel .slide, .car-dot { transition: none; } }
+  /* "Fits how you work": the gadget's three views, drawn in canvases (script near the end) */
+  .carousel canvas.view-shot { width: 100%; height: 100%; }
+  .view-tag { position: absolute; top: 8px; left: 10px; font-family: "Instrument Sans", "Segoe UI", sans-serif;
+              font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+  /* "Light": a small process list, Status Pet next to two heavy apps (numbers tick, script near the end) */
+  .proc-wrap { display: flex; align-items: center; justify-content: center; }
+  .proc { width: 88%; background: var(--panel); border: 1px solid var(--edge); border-radius: 8px; overflow: hidden;
+          box-shadow: 0 8px 20px -10px rgba(0,0,0,.7); font-size: 11px; }
+  .proc-bar { display: flex; justify-content: space-between; padding: 5px 10px; border-bottom: 1px solid var(--edge);
+              font-family: "Instrument Sans", "Segoe UI", sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+              text-transform: uppercase; color: var(--dim); }
+  .proc-row { display: grid; grid-template-columns: 1fr 42px 62px; align-items: center; gap: 6px; padding: 4px 10px; }
+  .proc-row > :not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+  .proc-head { font-family: "Instrument Sans", "Segoe UI", sans-serif; font-size: 10px; font-weight: 600; color: var(--dim); padding-block: 4px 2px; }
+  .proc-row.app { color: var(--dim); }
+  .proc-row.me { color: var(--ink); font-weight: 600; background: rgba(149,133,240,.14);
+                 box-shadow: inset 2px 0 0 var(--accent-soft); }
+  .proc-name { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
+  .proc-dot { width: 7px; height: 7px; border-radius: 999px; flex: none; margin-inline: 2px; }
+  .proc-ico { width: 12px; height: 10px; flex: none; }
+  /* seasonal row: two cards, each as wide as a card in the row above */
+  .seasonal-head { margin-top: 64px; }
+  .feature-grid.two { grid-template-columns: repeat(2, 1fr); max-width: calc((1120px - 48px) / 2 + 16px); }
+  @media (max-width: 860px) { .feature-grid.two { max-width: 1120px; } }
+  @media (max-width: 560px) { .feature-grid.two { grid-template-columns: 1fr; } }
+  /* corner ribbon on the seasonal cards' media box */
+  .ribbon { position: absolute; top: 14px; right: -30px; width: 116px; rotate: 45deg; z-index: 2;
+            padding: 4px 0; text-align: center; pointer-events: none;
+            background: linear-gradient(#FFA24D, #E8782A); color: #1C1208;
+            font-family: "Instrument Sans", "Segoe UI", sans-serif; font-size: 10px; font-weight: 600;
+            letter-spacing: .1em; text-transform: uppercase;
+            box-shadow: 0 2px 8px rgba(0,0,0,.45); }
+  .feature-card h3 { font-family: "Instrument Sans", "Segoe UI", sans-serif; font-size: 16px; font-weight: 600;
+                      color: var(--ink); margin: 0 0 8px; }
+  .feature-card p { margin: 0; font-size: 15px; line-height: 22px; color: var(--dim); }
+
+
+  /* Instagram link: in the footer */
+  .ig { width: 1.1em; height: 1.1em; flex: none; }
+  .ig-link { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-soft); text-decoration: none; }
+  .ig-link:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+  .ig-link:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 3px; border-radius: 4px; }
+  .foot-by { display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+
+  /* the official Ko-fi symbol is black-outlined, so inline (footer link) it sits on a small white badge */
+  .kofi-badge { display: inline-flex; align-items: center; justify-content: center; flex: none;
+                width: 1.5em; height: 1.5em; border-radius: 999px; background: #FFFFFF; }
+  .kofi-badge img { width: 66%; height: auto; display: block; }
+  /* floating Ko-fi button, bottom-right: the official Ko-fi symbol on a white badge; the label slides out on hover */
+  .kofi-fab { position: fixed; right: 20px; bottom: 20px; z-index: 50; display: inline-flex; align-items: center;
+              height: 44px; padding: 0 10px; border-radius: 999px; background: #FFFFFF; color: #202020;
+              text-decoration: none; font-weight: 600; font-size: 14px;
+              box-shadow: 0 6px 18px -6px rgba(0,0,0,.6); }
+  .kofi-fab img { width: 24px; height: auto; display: block; flex: none; }
+  .kofi-fab span { max-width: 0; overflow: hidden; white-space: nowrap; opacity: 0;
+                   transition: max-width .25s ease, opacity .2s ease, margin .25s ease; }
+  .kofi-fab:hover span, .kofi-fab:focus-visible span { max-width: 140px; opacity: 1; margin-left: 8px; }
+  .kofi-fab:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 3px; }
+  @media (max-width: 560px) { .kofi-fab { right: 12px; bottom: 12px; height: 38px; padding: 0 8px; } .kofi-fab img { width: 21px; } }
+  @media (prefers-reduced-motion: reduce) { .kofi-fab span { transition: none; } }
+
+  /* ---------- footer ---------- */
+  footer { padding-block: 32px; text-align: center; font-family: "Instrument Sans", "Segoe UI", sans-serif;
+           font-size: 13px; color: var(--dim); display: grid; gap: 8px; }
+</style>
+</head>
+<body>
+
+<section class="hero side">
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <p class="eyebrow">Now available</p>
+      <h1>Status Pet</h1>
+      <p class="tagline">A lightweight system monitor for Windows.</p>
+      <p class="sub">CPU, GPU and RAM at a glance, with a pixel pet that reacts to how hard your PC is working.</p>
+      <div class="hero-actions">
+        <a class="btn-primary" id="dl-btn" href="https://github.com/jutopian/status-pet/releases/latest/download/StatusPet-Setup.exe">Download for Free</a>
+        <a class="btn-ghost" href="https://github.com/jutopian/status-pet" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>View on GitHub</a>
+      </div>
+      <p class="dl-os"><span class="os-on">Windows 10 / 11</span> · Mac &amp; Linux coming soon</p>
+      <p class="dl-meta" id="dl-meta">v1.0.1 · 10 MB installer · <a href="https://github.com/jutopian/status-pet" target="_blank" rel="noopener">Open source (MIT)</a></p>
+    </div>
+    <div class="hero-art">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <canvas class="hero-photo" id="hero-gadget" width="416" height="320" role="img"
+              aria-label="The Status Pet gadget: CPU, GPU and RAM meters, and two tracked-program rows, with a pixel cat holding a wand"></canvas>
+    </div>
+  </div>
+</section>
+
+<section class="features-section side">
+  <div class="features-head">
+    <p class="eyebrow">Why you'll keep it open</p>
+  </div>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-media carousel" id="gif-compact" role="region" aria-roledescription="carousel" aria-label="Views">
+        <div class="slide on" data-ms="3200"><canvas class="view-shot" data-view="full" role="img" aria-label="The full view: the pet's night yard above CPU, GPU and RAM bars"></canvas><span class="view-tag">Full</span></div>
+        <div class="slide" data-ms="3200"><canvas class="view-shot" data-view="compact" role="img" aria-label="The compact view: the pet's yard above one row of CPU, GPU and RAM"></canvas><span class="view-tag">Compact</span></div>
+        <div class="slide" data-ms="3200"><canvas class="view-shot" data-view="line" role="img" aria-label="The one-line view: a thin bar of CPU, GPU and RAM with the pet walking on top"></canvas><span class="view-tag">One line</span></div>
+        <button class="car-arrow prev" aria-label="Previous view">&#8249;</button>
+        <button class="car-arrow next" aria-label="Next view">&#8250;</button>
+        <div class="car-dots"></div>
+      </div>
+      <h3>Fits how you work</h3>
+      <p>Shrink it to a thin compact bar, or make the background see through.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-media carousel" id="gif-reacts" role="region" aria-roledescription="carousel" aria-label="Pet effects">
+        <div class="slide on" data-src="web/magic_cast.gif" data-ms="6000"><img class="pet-gif" src="web/magic_cast.gif" alt="The cat raises a wand, then a magic circle spins at its feet, then sparkles rise"></div>
+        <div class="slide" data-src="web/comp_work.gif" data-ms="7200"><img class="pet-gif" src="web/comp_work.gif" alt="The green pet holds a laptop, then sips coffee, then stacks paper at a desk"></div>
+        <div class="slide" data-src="web/paint_work.gif" data-ms="7200"><img class="pet-gif" src="web/paint_work.gif" alt="The cat in a beret holds a brush, then a palette, then paints a picture at an easel"></div>
+        <button class="car-arrow prev" aria-label="Previous effect">&#8249;</button>
+        <button class="car-arrow next" aria-label="Next effect">&#8250;</button>
+        <div class="car-dots"></div>
+      </div>
+      <h3>Reacts to your PC</h3>
+      <p>When busy, its effect builds up in three stages. When idle, it falls asleep.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-media proc-wrap" id="gif-light">
+        <div class="proc" role="img" aria-label="A process list: Program 1 uses about 12% CPU and 3,210 MB, Program 2 about 4% and 1,480 MB, Status Pet under 3% CPU and about 50 MB">
+          <div class="proc-bar" aria-hidden="true"><span>Processes</span><span>Live</span></div>
+          <div class="proc-row proc-head" aria-hidden="true"><span>Name</span><span>CPU</span><span>Memory</span></div>
+          <div class="proc-row app" aria-hidden="true"><span class="proc-name"><i class="proc-dot" style="background:#8C93A3"></i>Program 1</span><span data-cpu="10.2,14.8">12.4%</span><span data-mem="3180,3240">3,210 MB</span></div>
+          <div class="proc-row app" aria-hidden="true"><span class="proc-name"><i class="proc-dot" style="background:#6A6484"></i>Program 2</span><span data-cpu="3.1,5.6">4.1%</span><span data-mem="1460,1500">1,480 MB</span></div>
+          <div class="proc-row me" aria-hidden="true"><span class="proc-name"><svg class="proc-ico" viewBox="0 0 12 10" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="1" height="1" fill="#2F6B45"/><rect x="4" y="0" width="1" height="1" fill="#2F6B45"/><rect x="5" y="0" width="1" height="1" fill="#2F6B45"/><rect x="6" y="0" width="1" height="1" fill="#2F6B45"/><rect x="7" y="0" width="1" height="1" fill="#2F6B45"/><rect x="8" y="0" width="1" height="1" fill="#2F6B45"/><rect x="1" y="1" width="1" height="1" fill="#2F6B45"/><rect x="2" y="1" width="1" height="1" fill="#2F6B45"/><rect x="3" y="1" width="1" height="1" fill="#A3E4B6"/><rect x="4" y="1" width="1" height="1" fill="#A3E4B6"/><rect x="5" y="1" width="1" height="1" fill="#6CC486"/><rect x="6" y="1" width="1" height="1" fill="#6CC486"/><rect x="7" y="1" width="1" height="1" fill="#6CC486"/><rect x="8" y="1" width="1" height="1" fill="#6CC486"/><rect x="9" y="1" width="1" height="1" fill="#2F6B45"/><rect x="10" y="1" width="1" height="1" fill="#2F6B45"/><rect x="0" y="2" width="1" height="1" fill="#2F6B45"/><rect x="1" y="2" width="1" height="1" fill="#A3E4B6"/><rect x="2" y="2" width="1" height="1" fill="#6CC486"/><rect x="3" y="2" width="1" height="1" fill="#1E1B26"/><rect x="4" y="2" width="1" height="1" fill="#6CC486"/><rect x="5" y="2" width="1" height="1" fill="#6CC486"/><rect x="6" y="2" width="1" height="1" fill="#6CC486"/><rect x="7" y="2" width="1" height="1" fill="#6CC486"/><rect x="8" y="2" width="1" height="1" fill="#1E1B26"/><rect x="9" y="2" width="1" height="1" fill="#6CC486"/><rect x="10" y="2" width="1" height="1" fill="#6CC486"/><rect x="11" y="2" width="1" height="1" fill="#2F6B45"/><rect x="0" y="3" width="1" height="1" fill="#2F6B45"/><rect x="1" y="3" width="1" height="1" fill="#6CC486"/><rect x="2" y="3" width="1" height="1" fill="#6CC486"/><rect x="3" y="3" width="1" height="1" fill="#1E1B26"/><rect x="4" y="3" width="1" height="1" fill="#6CC486"/><rect x="5" y="3" width="1" height="1" fill="#6CC486"/><rect x="6" y="3" width="1" height="1" fill="#6CC486"/><rect x="7" y="3" width="1" height="1" fill="#6CC486"/><rect x="8" y="3" width="1" height="1" fill="#1E1B26"/><rect x="9" y="3" width="1" height="1" fill="#6CC486"/><rect x="10" y="3" width="1" height="1" fill="#6CC486"/><rect x="11" y="3" width="1" height="1" fill="#2F6B45"/><rect x="0" y="4" width="1" height="1" fill="#2F6B45"/><rect x="1" y="4" width="1" height="1" fill="#F59BAA"/><rect x="2" y="4" width="1" height="1" fill="#F59BAA"/><rect x="3" y="4" width="1" height="1" fill="#6CC486"/><rect x="4" y="4" width="1" height="1" fill="#6CC486"/><rect x="5" y="4" width="1" height="1" fill="#6CC486"/><rect x="6" y="4" width="1" height="1" fill="#6CC486"/><rect x="7" y="4" width="1" height="1" fill="#6CC486"/><rect x="8" y="4" width="1" height="1" fill="#6CC486"/><rect x="9" y="4" width="1" height="1" fill="#F59BAA"/><rect x="10" y="4" width="1" height="1" fill="#F59BAA"/><rect x="11" y="4" width="1" height="1" fill="#2F6B45"/><rect x="0" y="5" width="1" height="1" fill="#2F6B45"/><rect x="1" y="5" width="1" height="1" fill="#6CC486"/><rect x="2" y="5" width="1" height="1" fill="#6CC486"/><rect x="3" y="5" width="1" height="1" fill="#6CC486"/><rect x="4" y="5" width="1" height="1" fill="#1E1B26"/><rect x="5" y="5" width="1" height="1" fill="#6CC486"/><rect x="6" y="5" width="1" height="1" fill="#6CC486"/><rect x="7" y="5" width="1" height="1" fill="#1E1B26"/><rect x="8" y="5" width="1" height="1" fill="#6CC486"/><rect x="9" y="5" width="1" height="1" fill="#6CC486"/><rect x="10" y="5" width="1" height="1" fill="#6CC486"/><rect x="11" y="5" width="1" height="1" fill="#2F6B45"/><rect x="0" y="6" width="1" height="1" fill="#2F6B45"/><rect x="1" y="6" width="1" height="1" fill="#55AA6E"/><rect x="2" y="6" width="1" height="1" fill="#6CC486"/><rect x="3" y="6" width="1" height="1" fill="#6CC486"/><rect x="4" y="6" width="1" height="1" fill="#6CC486"/><rect x="5" y="6" width="1" height="1" fill="#1E1B26"/><rect x="6" y="6" width="1" height="1" fill="#1E1B26"/><rect x="7" y="6" width="1" height="1" fill="#6CC486"/><rect x="8" y="6" width="1" height="1" fill="#6CC486"/><rect x="9" y="6" width="1" height="1" fill="#6CC486"/><rect x="10" y="6" width="1" height="1" fill="#55AA6E"/><rect x="11" y="6" width="1" height="1" fill="#2F6B45"/><rect x="1" y="7" width="1" height="1" fill="#2F6B45"/><rect x="2" y="7" width="1" height="1" fill="#55AA6E"/><rect x="3" y="7" width="1" height="1" fill="#55AA6E"/><rect x="4" y="7" width="1" height="1" fill="#55AA6E"/><rect x="5" y="7" width="1" height="1" fill="#55AA6E"/><rect x="6" y="7" width="1" height="1" fill="#55AA6E"/><rect x="7" y="7" width="1" height="1" fill="#55AA6E"/><rect x="8" y="7" width="1" height="1" fill="#55AA6E"/><rect x="9" y="7" width="1" height="1" fill="#55AA6E"/><rect x="10" y="7" width="1" height="1" fill="#2F6B45"/><rect x="2" y="8" width="1" height="1" fill="#3F8A57"/><rect x="3" y="8" width="1" height="1" fill="#3F8A57"/><rect x="4" y="8" width="1" height="1" fill="#2F6B45"/><rect x="5" y="8" width="1" height="1" fill="#2F6B45"/><rect x="6" y="8" width="1" height="1" fill="#2F6B45"/><rect x="7" y="8" width="1" height="1" fill="#2F6B45"/><rect x="8" y="8" width="1" height="1" fill="#3F8A57"/><rect x="9" y="8" width="1" height="1" fill="#3F8A57"/><rect x="2" y="9" width="1" height="1" fill="#3F8A57"/><rect x="3" y="9" width="1" height="1" fill="#3F8A57"/><rect x="8" y="9" width="1" height="1" fill="#3F8A57"/><rect x="9" y="9" width="1" height="1" fill="#3F8A57"/></svg>Status Pet</span><span data-cpu="0.3,1.5">0.8%</span><span data-mem="46,52">48 MB</span></div>
+        </div>
+      </div>
+      <h3>Light</h3>
+      <p>About 0 to 3% of one CPU core and around 50 MB of memory.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-media carousel" id="gif-customize" role="region" aria-roledescription="carousel" aria-label="Pets and hats">
+        <div class="slide on" data-src="web/custom_cat_straw_hat.png" data-ms="2400"><img class="pet-gif" src="web/custom_cat_straw_hat.png" alt="The cat in a straw hat"></div>
+        <div class="slide" data-src="web/custom_slime_wizard_hat.png" data-ms="2400"><img class="pet-gif" src="web/custom_slime_wizard_hat.png" alt="The green pet in a wizard hat"></div>
+        <div class="slide" data-src="web/custom_cat_crown.png" data-ms="2400"><img class="pet-gif" src="web/custom_cat_crown.png" alt="The cat in a crown"></div>
+        <div class="slide" data-src="web/custom_slime_blue_cap.png" data-ms="2400"><img class="pet-gif" src="web/custom_slime_blue_cap.png" alt="The green pet in a blue cap"></div>
+        <button class="car-arrow prev" aria-label="Previous look">&#8249;</button>
+        <button class="car-arrow next" aria-label="Next look">&#8250;</button>
+        <div class="car-dots"></div>
+      </div>
+      <h3>Customize your pet</h3>
+      <p>Choose from several pets and hats.</p>
+    </div>
+  </div>
+  <div class="features-head seasonal-head">
+    <p class="eyebrow">Seasonal</p>
+  </div>
+  <div class="feature-grid two">
+    <div class="feature-card">
+      <div class="feature-media carousel" id="gif-seasonal-fx" role="region" aria-roledescription="carousel" aria-label="Seasonal effects">
+        <span class="ribbon" aria-hidden="true">Seasonal</span>
+        <div class="slide on" data-src="web/trick_pumpkin_10x.gif" data-ms="9200"><img class="pet-gif" src="web/trick_pumpkin_10x.gif" alt="The pumpkin pet carries a lantern, then drops sweets, then bats whirl around it"></div>
+        <div class="slide" data-src="web/trick_ghost_10x.gif" data-ms="9200"><img class="pet-gif" src="web/trick_ghost_10x.gif" alt="The ghost pet carries a lantern, then drops sweets, then bats whirl around it"></div>
+        <button class="car-arrow prev" aria-label="Previous effect">&#8249;</button>
+        <button class="car-arrow next" aria-label="Next effect">&#8250;</button>
+        <div class="car-dots"></div>
+      </div>
+      <h3>Seasonal effects</h3>
+      <p>Holiday effects, like Halloween lanterns, sweets and bats.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-media carousel" id="gif-seasonal-pets" role="region" aria-roledescription="carousel" aria-label="Seasonal pets">
+        <span class="ribbon" aria-hidden="true">Seasonal</span>
+        <div class="slide on" data-src="web/season_pumpkin.png" data-ms="2400"><img class="pet-gif" src="web/season_pumpkin.png" alt="The glowing pumpkin pet"></div>
+        <div class="slide" data-src="web/season_ghost.png" data-ms="2400"><img class="pet-gif" src="web/season_ghost.png" alt="The little ghost pet"></div>
+        <button class="car-arrow prev" aria-label="Previous pet">&#8249;</button>
+        <button class="car-arrow next" aria-label="Next pet">&#8250;</button>
+        <div class="car-dots"></div>
+      </div>
+      <h3>Seasonal pets</h3>
+      <p>Limited-time pets, like a glowing pumpkin and a little ghost.</p>
+    </div>
+  </div>
+</section>
+
+<a class="kofi-fab" href="https://ko-fi.com/jutopian" target="_blank" rel="noopener" aria-label="Support jutopian on Ko-fi"><img src="web/kofi_symbol.png" alt=""><span>Support on Ko-fi</span></a>
+
+<footer>
+  <span>Status Pet · v1.0.1</span>
+  <span class="foot-by">by jutopian <span aria-hidden="true">·</span> <a class="ig-link" href="https://www.instagram.com/status.pet_official/" target="_blank" rel="noopener" aria-label="Status Pet on Instagram"><svg class="ig" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.3" cy="6.7" r="1.2" fill="currentColor"/></svg>Instagram</a> <span aria-hidden="true">·</span> <a class="ig-link" href="https://ko-fi.com/jutopian" target="_blank" rel="noopener" aria-label="Support jutopian on Ko-fi"><span class="kofi-badge" aria-hidden="true"><img src="web/kofi_symbol.png" alt=""></span>Ko-fi</a> <span aria-hidden="true">·</span> <a class="ig-link" href="https://github.com/jutopian/status-pet" target="_blank" rel="noopener" aria-label="Status Pet on GitHub"><svg class="ig" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></span>
+</footer>
+
+<script>
+// In-card carousel: each slide shows for one full loop of its GIF, restarted from frame 1 when it comes in.
+document.querySelectorAll(".carousel").forEach((car) => {
+  const slides = [...car.querySelectorAll(".slide")];
+  const dots = car.querySelector(".car-dots");
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let cur = 0, timer = null;
+  slides.forEach((_, i) => {
+    const d = document.createElement("button");
+    d.className = "car-dot" + (i ? "" : " on");
+    d.setAttribute("aria-label", "Show slide " + (i + 1));
+    d.addEventListener("click", () => show(i));
+    dots.appendChild(d);
+  });
+  function show(i) {
+    cur = (i + slides.length) % slides.length;
+    slides.forEach((s, k) => {
+      const on = k === cur;
+      s.classList.toggle("on", on);
+      s.setAttribute("aria-hidden", on ? "false" : "true");
+      dots.children[k].classList.toggle("on", on);
+      const img = on && s.querySelector("img");
+      if (img) { img.src = ""; img.src = s.dataset.src; }   // restart the GIF from its first frame
+    });
+    clearTimeout(timer);
+    if (!still) timer = setTimeout(() => show(cur + 1), +slides[cur].dataset.ms);
+  }
+  car.querySelector(".prev").addEventListener("click", () => show(cur - 1));
+  car.querySelector(".next").addEventListener("click", () => show(cur + 1));
+  show(0);
+});
+</script>
+
+<script>
+/* Hero gadget: one still frame of the real app, drawn the way status_gadget_pro.pyw draws it
+   (_draw_base, _bake_stage, _draw_night, _draw_pet, _draw_rows), with the same numbers.
+   The old hero-photo.png was a capture at 125% Windows scaling (S = 1.25, 2 device px per pet pixel),
+   shrunk to 80%. So everything is drawn in those device pixels, then mapped to the 416 x 320 frame:
+   frame = device * 0.8 - (OFF_X, OFF_Y). The canvas itself runs at the screen's resolution. */
+(() => {
+  const cv = document.getElementById("hero-gadget");
+  const ctx = cv.getContext("2d");
+
+  // ---- app constants (status_gadget_pro.pyw) ----
+  const S = 1.25, PS = 2, MARGIN = 10, SZ = 1.05;       // SZ = Status size 100% * SIZE_BASE
+  const W = 400, YH = 130, H = 8 + YH + (108 + 2 * 22 + 2) * SZ;
+  const SHOT = 0.8, OFF_X = 3.2, OFF_Y = 1.3, FRAME_W = 416, FRAME_H = 320;
+  const C = { panel: "#1E1B26", edge: "#34303F", track: "#2E2A3A", label: "#8F88A8", ink: "#ECE9F3",
+              ok: "#6FCF9C", star: "#FFD86B" };
+  const NIGHT = { sky: ["#0A0F21", "#1F2A4C"], far: "#1B2644", mid: "#16203A", gnd: "#141D30",
+                  edge: "#22314A", tuft: "#2A3C58" };
+  const STARS = [[.06, .12], [.15, .4], [.25, .1], [.34, .3], [.45, .14], [.54, .44], [.62, .08], [.7, .36],
+                 [.87, .5], [.93, .12]];
+  // Star and firefly brightness in the captured frame (they twinkle in the app; this is that moment).
+  const STAR_A = [.39, .78, .79, .4, .75, .83, .47, .7, .77, .54];
+  const FLIES = [[266.4, 79.6, .85], [70.4, 90.9, .9], [321.6, 64.5, .45], [152.8, 63.8, .4]];   // frame x, y, alpha
+  const STATS = [["CPU", 3, "3%"], ["GPU", 18, "18%"], ["RAM", 32, "32%"]];
+  // generic names and neutral dots on purpose: no third-party product names or brand colors on the site
+  const APPS = [["Program 1", "#8C93A3", 0, "9%"], ["Program 2", "#6A6484", 0, "1%"]];
+  // The app asks for the "Segoe UI Semibold" family by name, so ask for it the same way (not weight 600).
+  const UI = '"Segoe UI", "Instrument Sans", system-ui, sans-serif', SB = `"Segoe UI Semibold", ${UI}`;
+  const F = { label: `9.5px ${SB}`, value: `12.5px ${SB}`, name: `11.5px ${UI}`, small: `11px ${SB}` };
+
+  // ---- the Siamese with the wizard hat, wand raised (gadget_pose.pose_cells: "neutral", feet 0, wob 1) ----
+  const PAL = ["#3B2F7A", "#B9ADFF", "#FFD86B", "#6F5FD6", "#9585F0", "#2A1D18", "#5A3E32", "#5E4FC0", "#F3E6CF",
+               "#5AB0FF", "#1E1B26", "#FFF6CF", "#F59BAA", "#7A5A40", "#D9C3A2"];
+  const CAT = "7,1,0 8,1,0 7,2,0 8,2,1 9,2,0 7,3,0 8,3,2 9,3,1 10,3,0 6,4,0 7,4,2 8,4,2 9,4,2 10,4,1 11,4,0 5,5,0 6,5,3 7,5,4 8,5,2 9,5,4 10,5,1 11,5,0 5,6,5 6,6,3 7,6,4 8,6,4 9,6,4 10,6,4 11,6,1 12,6,0 14,6,5 4,7,5 5,7,6 6,7,5 7,7,7 8,7,7 9,7,7 10,7,7 11,7,7 12,7,0 13,7,5 14,7,6 15,7,5 3,8,0 4,8,5 5,8,6 6,8,6 7,8,4 8,8,4 9,8,4 10,8,4 11,8,4 12,8,4 13,8,6 14,8,6 15,8,5 16,8,0 4,9,0 5,9,0 6,9,0 7,9,0 8,9,0 9,9,0 10,9,0 11,9,0 12,9,0 13,9,0 14,9,0 15,9,0 4,10,5 5,10,8 6,10,8 7,10,9 8,10,6 9,10,6 10,10,6 11,10,6 12,10,9 13,10,8 14,10,8 15,10,5 18,10,2 1,11,5 4,11,5 5,11,8 6,11,6 7,11,10 8,11,6 9,11,6 10,11,6 11,11,6 12,11,10 13,11,6 14,11,8 15,11,5 17,11,2 18,11,11 19,11,2 0,12,5 1,12,6 2,12,5 4,12,5 5,12,12 6,12,8 7,12,6 8,12,6 9,12,12 10,12,12 11,12,6 12,12,6 13,12,8 14,12,12 15,12,5 18,12,2 0,13,5 1,13,6 2,13,5 4,13,5 5,13,8 6,13,8 7,13,8 8,13,6 9,13,6 10,13,6 11,13,6 12,13,8 13,13,8 14,13,8 15,13,5 17,13,13 1,14,5 2,14,6 4,14,5 5,14,8 6,14,8 7,14,8 8,14,8 9,14,8 10,14,8 11,14,8 12,14,8 13,14,8 14,14,8 15,14,5 16,14,6 2,15,5 3,15,6 4,15,5 5,15,14 6,15,8 7,15,8 8,15,8 9,15,8 10,15,8 11,15,8 12,15,8 13,15,8 14,15,14 15,15,13 3,16,5 5,16,5 6,16,14 7,16,14 8,16,14 9,16,14 10,16,14 11,16,14 12,16,14 13,16,14 14,16,5 6,17,6 7,17,6 8,17,5 9,17,5 10,17,5 11,17,5 12,17,6 13,17,6 6,18,6 7,18,6 12,18,6 13,18,6"
+    .split(" ").map((t) => t.split(",").map(Number));
+  const PET_OX = 164;                              // device x of the pet's grid (pet.x at that moment)
+  // The sprite at device size (PS px per pet pixel) in its own small canvas, then placed as one image,
+  // so the scaled-down cells blend like the capture instead of showing thin seams between them.
+  let sprite = null;
+  const catSprite = () => {
+    if (sprite) return sprite;
+    sprite = document.createElement("canvas");
+    sprite.width = 20 * PS; sprite.height = 19 * PS;
+    const g = sprite.getContext("2d");
+    for (const [c, r, k] of CAT) { g.fillStyle = PAL[k]; g.fillRect(c * PS, r * PS, PS, PS); }
+    return sprite;
+  };
+
+  // ---- helpers ----
+  const pyRound = (v) => { const f = Math.floor(v), d = v - f; return d > .5 ? f + 1 : d < .5 ? f : (f % 2 ? f + 1 : f); };
+  const dev = (v) => (MARGIN + v) * S;
+  const rgba = (hex, a = 1) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
+  const lerpHex = (a, b, k) => "#" + [1, 3, 5].map((i) => {
+    const x = parseInt(a.slice(i, i + 2), 16), y = parseInt(b.slice(i, i + 2), 16);
+    return Math.round(x + (y - x) * k).toString(16).padStart(2, "0");
+  }).join("");
+  let K = 1;                                       // canvas px per frame px
+  const toDevice = () => ctx.setTransform(K * SHOT, 0, 0, K * SHOT, -OFF_X * K, -OFF_Y * K);
+  const world = (scale, dx = 0, dy = 0) => { toDevice(); ctx.transform(scale, 0, 0, scale, dx * scale, dy * scale); };
+  const rrect = (x, y, w, h, r) => {
+    r = Math.max(.01, Math.min(r, w / 2, h / 2));
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
+  };
+  const fillRR = (x, y, w, h, r, col) => { rrect(x, y, w, h, r); ctx.fillStyle = col; ctx.fill(); };
+  const line = (x0, y0, x1, y1, col, width = 1) => {
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
+    ctx.strokeStyle = col; ctx.lineWidth = width; ctx.lineCap = "round"; ctx.stroke();
+  };
+  const circle = (x, y, r, col) => { ctx.beginPath(); ctx.ellipse(x, y, r, r, 0, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill(); };
+  const glow = (x, y, r, hex, a) => {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, rgba(hex, a)); g.addColorStop(1, rgba(hex, 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  };
+  // gfx.text: the line box (ascent + descent) is centred on y; returns the advance width.
+  const text = (s, x, y, font, col, align = "left") => {
+    ctx.font = font;
+    const m = ctx.measureText(s);
+    const asc = m.fontBoundingBoxAscent ?? m.actualBoundingBoxAscent;
+    const desc = m.fontBoundingBoxDescent ?? m.actualBoundingBoxDescent;
+    if (align === "right") x -= m.width;
+    ctx.fillStyle = col; ctx.textBaseline = "alphabetic";
+    ctx.fillText(s, x, y - (asc + desc) / 2 + asc);
+    return m.width;
+  };
+  const spaced = (s, x, y, font, col, gap) => { for (const ch of s) x += text(ch, x, y, font, col) + gap; };
+
+  // ---- _bake_stage("night"), in stage units (w x YH) ----
+  function stage(w, h) {
+    const gy = h - Math.round(h * .2), m = gy / 122, Y = (v) => v * m;
+    const sky = ctx.createLinearGradient(0, 0, 0, gy);
+    sky.addColorStop(0, NIGHT.sky[0]); sky.addColorStop(1, NIGHT.sky[1]);
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, w, gy);
+    ctx.fillStyle = NIGHT.sky[1]; ctx.fillRect(0, gy - 1, w, h - gy + 1);
+    const mx = w - 60, my = Math.max(12, Y(30)), R = Math.max(7, Y(10));
+    circle(mx, my, R * 2, rgba("#F4EDD2", .12));
+    circle(mx, my, R, "#F4EDD2");
+    circle(mx + R * .55, my - R * .2, R * .85, lerpHex(NIGHT.sky[0], NIGHT.sky[1], (my - R * .2) / gy));   // crescent
+    const hill = (y0, segs, col) => {
+      ctx.beginPath(); ctx.moveTo(0, y0);
+      for (const s of segs) s.length === 6 ? ctx.bezierCurveTo(...s) : ctx.lineTo(...s);
+      ctx.closePath(); ctx.fillStyle = col; ctx.fill();
+    };
+    hill(gy - Y(18), [[w * .2, gy - Y(42), w * .35, gy - Y(22), w * .5, gy - Y(30)],
+                      [w * .65, gy - Y(38), w * .8, gy - Y(46), w, gy - Y(26)], [w, h], [0, h]], NIGHT.far);
+    hill(gy - Y(6), [[w * .25, gy - Y(20), w * .45, gy - Y(4), w * .65, gy - Y(14)],
+                     [w * .85, gy - Y(24), w * .9, gy - Y(10), w, gy - Y(16)], [w, h], [0, h]], NIGHT.mid);
+    ctx.fillStyle = NIGHT.gnd; ctx.fillRect(0, gy, w, h - gy);
+    ctx.fillStyle = NIGHT.edge; ctx.fillRect(0, gy, w, 2);
+    for (const f of [.06, .2, .39, .6, .75, .9]) {
+      const x = Math.round(f * w);
+      line(x, gy + 9, x + 2, gy + 4, NIGHT.tuft, 1.2);
+      line(x + 3, gy + 9, x + 6, gy + 5, NIGHT.tuft, 1.2);
+    }
+  }
+
+  function draw() {
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = cv.getBoundingClientRect().width || FRAME_W;
+    K = Math.max(1, Math.round(cssW * dpr)) / FRAME_W;
+    cv.width = Math.round(FRAME_W * K); cv.height = Math.round(FRAME_H * K);
+
+    // desktop behind the gadget, as in the capture
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, cv.width, cv.height);
+
+    // panel: soft shadow, body, top highlight (_draw_base)
+    world(S, MARGIN, MARGIN);
+    for (let i = 0; i < 6; i++) {
+      const e = 1 + i * 1.3;
+      fillRR(-e, -e + 2.5, W + 2 * e, H + 2 * e, 12 + e, rgba("#000000", .035 + .008 * (5 - i)));
+    }
+    rrect(.5, .5, W - 1, H - 1, 12);
+    ctx.fillStyle = C.panel; ctx.fill();
+    ctx.strokeStyle = C.edge; ctx.lineWidth = 1; ctx.stroke();
+    line(12, 1.5, W - 12, 1.5, rgba("#FFFFFF", .06));
+
+    // the yard: stage, night sky, pet, all clipped to its rounded box
+    const sw = W - 16, gy = YH - Math.round(YH * .2);
+    toDevice();
+    ctx.save();
+    rrect(dev(8), dev(8), sw * S, YH * S, 8 * S); ctx.clip();
+    const st = pyRound(dev(8));
+    ctx.save(); ctx.translate(st, st); ctx.scale(S, S); stage(sw, YH); ctx.restore();
+    STARS.forEach(([x, y], i) => {
+      ctx.fillStyle = rgba("#FFF6D8", STAR_A[i]);
+      ctx.fillRect(pyRound(dev(8 + x * sw)), pyRound(dev(8 + y * gy * .7)), PS, PS);
+    });
+    for (const [fx, fy, a] of FLIES) {
+      const x = (fx + OFF_X) / SHOT, y = (fy + OFF_Y) / SHOT;
+      glow(x, y, 6 * S, "#FFE58A", a * .4);
+      ctx.fillStyle = rgba("#FFE58A", a);
+      ctx.fillRect(Math.round(x) - PS / 2, Math.round(y) - PS / 2, PS, PS);
+    }
+    // pet (_draw_pet): ground shadow, wand-star glow, then the sprite
+    const gyd = pyRound(dev(8 + YH - Math.round(YH * .2))), ox = PET_OX, oy = gyd - 18 * PS;
+    ctx.fillStyle = rgba("#000000", .22);
+    ctx.fillRect(ox + 5 * PS, oy + 18 * PS, 10 * PS, PS);
+    ctx.fillRect(ox + 6 * PS, oy + 19 * PS, 8 * PS, PS);
+    glow(ox + (4 + 14 + .5) * PS, oy + (9 + 1.5 + 1) * PS, 8 * S, C.star, .55);
+    ctx.drawImage(catSprite(), ox, oy);
+    ctx.restore();
+    world(S, MARGIN, MARGIN);
+    rrect(8.5, 8.5, W - 17, YH - 1, 8);
+    ctx.strokeStyle = rgba("#000000", .25); ctx.lineWidth = 1; ctx.stroke();
+
+    // status rows (_draw_rows, full view)
+    const top = 8 + YH, w = W / SZ;
+    world(S * SZ, MARGIN / SZ, (MARGIN + top) / SZ);
+    STATS.forEach(([label, pct, val], i) => {
+      const y0 = 14 + i * 30;
+      spaced(label, 16, y0 + 6, F.label, C.label, 1.2);
+      text(val, w - 16, y0 + 6, F.value, C.ink, "right");
+      fillRR(16, y0 + 14, w - 32, 4, 2, C.track);
+      fillRR(16, y0 + 14, Math.max(4, (w - 32) * pct / 100), 4, 2, C.ok);
+    });
+    const base = 108;
+    line(16, base - 5, w - 16, base - 5, C.edge);
+    APPS.forEach(([name, dot, cpu, ram], i) => {
+      const y = base + 7 + i * 22;
+      ctx.beginPath(); ctx.ellipse(20, y, 3.2, 3.2, 0, 0, Math.PI * 2); ctx.fillStyle = dot; ctx.fill();
+      text(name, 29, y, F.name, C.ink);
+      let x = w - 16;
+      [[ram, C.ink, F.small], ["RAM", C.label, F.label], [`${cpu}%`, C.ink, F.small], ["CPU", C.label, F.label]]
+        .forEach(([s, col, font], j) => { x -= text(s, x, y, font, col, "right") + (j === 1 ? 10 : 4); });
+    });
+  }
+
+  draw();
+  if (document.fonts) document.fonts.ready.then(draw);
+  let queued = false;
+  window.addEventListener("resize", () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; draw(); });
+  });
+})();
+</script>
+
+<script>
+/* "Fits how you work" card: the gadget in its three views (Full, Compact, One line), drawn the way
+   status_gadget_pro.pyw draws them (_draw_base, _bake_stage, _draw_night, _draw_pet, _draw_rows,
+   _draw_items) with the app's own numbers: default width 300, yard 80, Status size 100%, night sky.
+   All three share one scale, so their sizes compare honestly. The canvases run at the screen's resolution. */
+(() => {
+  const canvases = [...document.querySelectorAll("canvas.view-shot")];
+  if (!canvases.length) return;
+
+  // ---- app constants (status_gadget_pro.pyw) ----
+  const SZ = 1.05, W_DEF = 300, YH = 80, ROWS_FULL = 108, ROWS_COMPACT = 32;
+  const LINE_H = 28, LINE_L = 14, LINE_R = 20, ITEM_GAP = 12, LZ_H = 40;
+  const C = { panel: "#1E1B26", edge: "#34303F", track: "#2E2A3A", label: "#8F88A8", ink: "#ECE9F3",
+              ok: "#6FCF9C", star: "#FFD86B" };
+  const NIGHT = { sky: ["#0A0F21", "#1F2A4C"], far: "#1B2644", mid: "#16203A", gnd: "#141D30",
+                  edge: "#22314A", tuft: "#2A3C58" };
+  const STARS = [[.06, .12], [.15, .4], [.25, .1], [.34, .3], [.45, .14], [.54, .44], [.62, .08], [.7, .36],
+                 [.87, .5], [.93, .12]];
+  const STAR_A = [.39, .78, .79, .4, .75, .83, .47, .7, .77, .54];     // one moment of their twinkle
+  const FLIES = [[.14, .7, .7], [.34, .5, .45], [.66, .62, .8], [.82, .42, .4]];   // x, y, alpha
+  const STATS = [["CPU", 3, "3%"], ["GPU", 18, "18%"], ["RAM", 32, "32%"]];
+  const UI = '"Segoe UI", "Instrument Sans", system-ui, sans-serif', SB = `"Segoe UI Semibold", ${UI}`;
+  const F = { label: `9.5px ${SB}`, value: `12.5px ${SB}`, item: `10.5px ${SB}` };
+
+  // ---- the Siamese with the wizard hat, wand raised (same sprite as the hero) ----
+  const PAL = ["#3B2F7A", "#B9ADFF", "#FFD86B", "#6F5FD6", "#9585F0", "#2A1D18", "#5A3E32", "#5E4FC0", "#F3E6CF",
+               "#5AB0FF", "#1E1B26", "#FFF6CF", "#F59BAA", "#7A5A40", "#D9C3A2"];
+  const CAT = "7,1,0 8,1,0 7,2,0 8,2,1 9,2,0 7,3,0 8,3,2 9,3,1 10,3,0 6,4,0 7,4,2 8,4,2 9,4,2 10,4,1 11,4,0 5,5,0 6,5,3 7,5,4 8,5,2 9,5,4 10,5,1 11,5,0 5,6,5 6,6,3 7,6,4 8,6,4 9,6,4 10,6,4 11,6,1 12,6,0 14,6,5 4,7,5 5,7,6 6,7,5 7,7,7 8,7,7 9,7,7 10,7,7 11,7,7 12,7,0 13,7,5 14,7,6 15,7,5 3,8,0 4,8,5 5,8,6 6,8,6 7,8,4 8,8,4 9,8,4 10,8,4 11,8,4 12,8,4 13,8,6 14,8,6 15,8,5 16,8,0 4,9,0 5,9,0 6,9,0 7,9,0 8,9,0 9,9,0 10,9,0 11,9,0 12,9,0 13,9,0 14,9,0 15,9,0 4,10,5 5,10,8 6,10,8 7,10,9 8,10,6 9,10,6 10,10,6 11,10,6 12,10,9 13,10,8 14,10,8 15,10,5 18,10,2 1,11,5 4,11,5 5,11,8 6,11,6 7,11,10 8,11,6 9,11,6 10,11,6 11,11,6 12,11,10 13,11,6 14,11,8 15,11,5 17,11,2 18,11,11 19,11,2 0,12,5 1,12,6 2,12,5 4,12,5 5,12,12 6,12,8 7,12,6 8,12,6 9,12,12 10,12,12 11,12,6 12,12,6 13,12,8 14,12,12 15,12,5 18,12,2 0,13,5 1,13,6 2,13,5 4,13,5 5,13,8 6,13,8 7,13,8 8,13,6 9,13,6 10,13,6 11,13,6 12,13,8 13,13,8 14,13,8 15,13,5 17,13,13 1,14,5 2,14,6 4,14,5 5,14,8 6,14,8 7,14,8 8,14,8 9,14,8 10,14,8 11,14,8 12,14,8 13,14,8 14,14,8 15,14,5 16,14,6 2,15,5 3,15,6 4,15,5 5,15,14 6,15,8 7,15,8 8,15,8 9,15,8 10,15,8 11,15,8 12,15,8 13,15,8 14,15,14 15,15,13 3,16,5 5,16,5 6,16,14 7,16,14 8,16,14 9,16,14 10,16,14 11,16,14 12,16,14 13,16,14 14,16,5 6,17,6 7,17,6 8,17,5 9,17,5 10,17,5 11,17,5 12,17,6 13,17,6 6,18,6 7,18,6 12,18,6 13,18,6"
+    .split(" ").map((t) => t.split(",").map(Number));
+
+  let ctx, D = 1;                                  // D = device px per logical px
+  const rgba = (hex, a = 1) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
+  const lerpHex = (a, b, k) => "#" + [1, 3, 5].map((i) => {
+    const x = parseInt(a.slice(i, i + 2), 16), y = parseInt(b.slice(i, i + 2), 16);
+    return Math.round(x + (y - x) * k).toString(16).padStart(2, "0");
+  }).join("");
+  const rrect = (x, y, w, h, r) => {
+    r = Math.max(.01, Math.min(r, w / 2, h / 2));
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
+  };
+  const fillRR = (x, y, w, h, r, col) => { rrect(x, y, w, h, r); ctx.fillStyle = col; ctx.fill(); };
+  const line = (x0, y0, x1, y1, col, width = 1) => {
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
+    ctx.strokeStyle = col; ctx.lineWidth = width; ctx.lineCap = "round"; ctx.stroke();
+  };
+  const circle = (x, y, r, col) => { ctx.beginPath(); ctx.ellipse(x, y, r, r, 0, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill(); };
+  const glow = (x, y, r, hex, a) => {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, rgba(hex, a)); g.addColorStop(1, rgba(hex, 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  };
+  const measure = (s, font) => { ctx.font = font; return ctx.measureText(s).width; };
+  const text = (s, x, y, font, col, align = "left") => {        // gfx.text: line box centred on y
+    ctx.font = font;
+    const m = ctx.measureText(s);
+    const asc = m.fontBoundingBoxAscent ?? m.actualBoundingBoxAscent;
+    const desc = m.fontBoundingBoxDescent ?? m.actualBoundingBoxDescent;
+    if (align === "right") x -= m.width;
+    ctx.fillStyle = col; ctx.textBaseline = "alphabetic";
+    ctx.fillText(s, x, y - (asc + desc) / 2 + asc);
+    return m.width;
+  };
+  const spaced = (s, x, y, font, col, gap) => { for (const ch of s) x += text(ch, x, y, font, col) + gap; };
+
+  // status_items([]): a dot, the label, 4 px, the value
+  const items = () => STATS.map(([label, , val]) => ({ dot: C.ok, parts: [[label, C.label, 0], [val, C.ink, 4]] }));
+  const itemW = (it) => 10 + it.parts.reduce((a, [s, , g]) => a + g + measure(s, F.item), 0);
+  const itemsW = (its) => its.reduce((a, it) => a + itemW(it), 0) + ITEM_GAP * (its.length - 1);
+  const drawItems = (its, x, y) => {
+    for (const it of its) {
+      circle(x + 3, y, 3, it.dot); x += 10;
+      for (const [s, col, g] of it.parts) { x += g; x += text(s, x, y, F.item, col); }
+      x += ITEM_GAP;
+    }
+  };
+
+  // one view's size in logical px: [W, H, top of the panel, yard?]
+  function geom(view) {
+    if (view === "line") return [LINE_L + Math.ceil(itemsW(items()) * SZ) + LINE_R, LZ_H + LINE_H * SZ, LZ_H];
+    return [W_DEF, 8 + YH + (view === "compact" ? ROWS_COMPACT : ROWS_FULL) * SZ, 0];
+  }
+
+  function stage(w, h) {                           // _bake_stage("night"), in logical px
+    const gy = h - Math.round(h * .2), m = gy / 122, Y = (v) => v * m;
+    const sky = ctx.createLinearGradient(0, 0, 0, gy);
+    sky.addColorStop(0, NIGHT.sky[0]); sky.addColorStop(1, NIGHT.sky[1]);
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, w, gy);
+    ctx.fillStyle = NIGHT.sky[1]; ctx.fillRect(0, gy - 1, w, h - gy + 1);
+    const mx = w - 60, my = Math.max(12, Y(30)), R = Math.max(7, Y(10));
+    circle(mx, my, R * 2, rgba("#F4EDD2", .12));
+    circle(mx, my, R, "#F4EDD2");
+    circle(mx + R * .55, my - R * .2, R * .85, lerpHex(NIGHT.sky[0], NIGHT.sky[1], (my - R * .2) / gy));
+    const hill = (y0, segs, col) => {
+      ctx.beginPath(); ctx.moveTo(0, y0);
+      for (const s of segs) s.length === 6 ? ctx.bezierCurveTo(...s) : ctx.lineTo(...s);
+      ctx.closePath(); ctx.fillStyle = col; ctx.fill();
+    };
+    hill(gy - Y(18), [[w * .2, gy - Y(42), w * .35, gy - Y(22), w * .5, gy - Y(30)],
+                      [w * .65, gy - Y(38), w * .8, gy - Y(46), w, gy - Y(26)], [w, h], [0, h]], NIGHT.far);
+    hill(gy - Y(6), [[w * .25, gy - Y(20), w * .45, gy - Y(4), w * .65, gy - Y(14)],
+                     [w * .85, gy - Y(24), w * .9, gy - Y(10), w, gy - Y(16)], [w, h], [0, h]], NIGHT.mid);
+    ctx.fillStyle = NIGHT.gnd; ctx.fillRect(0, gy, w, h - gy);
+    ctx.fillStyle = NIGHT.edge; ctx.fillRect(0, gy, w, 2);
+    for (const f of [.06, .2, .39, .6, .75, .9]) {
+      const x = Math.round(f * w);
+      line(x, gy + 9, x + 2, gy + 4, NIGHT.tuft, 1.2);
+      line(x + 3, gy + 9, x + 6, gy + 5, NIGHT.tuft, 1.2);
+    }
+  }
+
+  // _draw_pet: ground shadow, wand-star glow, sprite -- in device px, snapped like the app's pixel blocks
+  function pet(ox0, oy0, px, py) {
+    const ps = Math.max(1, Math.round(2 * D));
+    const gyd = Math.round(py), ox = Math.round(px - 10 * ps), oy = gyd - 18 * ps;
+    ctx.setTransform(1, 0, 0, 1, ox0, oy0);
+    ctx.fillStyle = rgba("#000000", .22);
+    ctx.fillRect(ox + 5 * ps, oy + 18 * ps, 10 * ps, ps);
+    ctx.fillRect(ox + 6 * ps, oy + 19 * ps, 8 * ps, ps);
+    glow(ox + 18.5 * ps, oy + 11.5 * ps, 8 * D, C.star, .55);
+    for (const [c, r, k] of CAT) { ctx.fillStyle = PAL[k]; ctx.fillRect(ox + c * ps, oy + r * ps, ps, ps); }
+  }
+
+  function draw(cv, view, k) {
+    const dpr = window.devicePixelRatio || 1;
+    const box = cv.getBoundingClientRect();
+    cv.width = Math.max(1, Math.round(box.width * dpr)); cv.height = Math.max(1, Math.round(box.height * dpr));
+    ctx = cv.getContext("2d");
+    D = k * dpr;
+    const [W, H, lz] = geom(view);
+    const x0 = Math.round((cv.width - W * D) / 2), y0 = Math.round((cv.height - H * D) / 2);
+    const L = () => ctx.setTransform(D, 0, 0, D, x0, y0);          // logical panel coordinates
+
+    // panel: soft shadow, body, top highlight (_draw_base)
+    L();
+    for (let i = 0; i < 6; i++) {
+      const e = 1 + i * 1.3;
+      fillRR(-e, lz - e + 2.5, W + 2 * e, H - lz + 2 * e, 12 + e, rgba("#000000", .035 + .008 * (5 - i)));
+    }
+    rrect(.5, lz + .5, W - 1, H - lz - 1, 12);
+    ctx.fillStyle = C.panel; ctx.fill();
+    ctx.strokeStyle = C.edge; ctx.lineWidth = 1; ctx.stroke();
+    line(12, lz + 1.5, W - 12, lz + 1.5, rgba("#FFFFFF", .06));
+
+    if (view !== "line") {                         // the yard: stage, night sky, pet
+      const sw = W - 16, gy = YH - Math.round(YH * .2), ps = Math.max(1, Math.round(2 * D));
+      ctx.save();
+      rrect(8, 8, sw, YH, 8); ctx.clip();
+      ctx.translate(8, 8); stage(sw, YH);
+      ctx.setTransform(1, 0, 0, 1, x0, y0);
+      STARS.forEach(([x, y], i) => {
+        ctx.fillStyle = rgba("#FFF6D8", STAR_A[i]);
+        ctx.fillRect(Math.round((8 + x * sw) * D), Math.round((8 + y * gy * .7) * D), ps, ps);
+      });
+      for (const [x, y, a] of FLIES) {
+        const fx = (8 + x * sw) * D, fy = (8 + y * gy) * D;
+        glow(fx, fy, 6 * D, "#FFE58A", a * .4);
+        ctx.fillStyle = rgba("#FFE58A", a);
+        ctx.fillRect(Math.round(fx) - (ps >> 1), Math.round(fy) - (ps >> 1), ps, ps);
+      }
+      pet(x0, y0, W * .38 * D, (8 + gy) * D);
+      ctx.restore();
+      L();
+      rrect(8.5, 8.5, W - 17, YH - 1, 8);
+      ctx.strokeStyle = rgba("#000000", .25); ctx.lineWidth = 1; ctx.stroke();
+    } else {                                       // one line: the pet walks on top of the bar
+      pet(x0, y0, W * .3 * D, (lz - 2) * D);
+    }
+
+    // status rows (_draw_rows)
+    const top = view === "line" ? lz : 8 + YH, w = W / SZ;
+    ctx.setTransform(D * SZ, 0, 0, D * SZ, x0, y0 + top * D);
+    if (view === "line") drawItems(items(), LINE_L / SZ, LINE_H / 2);
+    else if (view === "compact") drawItems(items(), 16, 16);
+    else STATS.forEach(([label, pct, val], i) => {
+      const r0 = 14 + i * 30;
+      spaced(label, 16, r0 + 6, F.label, C.label, 1.2);
+      text(val, w - 16, r0 + 6, F.value, C.ink, "right");
+      fillRR(16, r0 + 14, w - 32, 4, 2, C.track);
+      fillRR(16, r0 + 14, Math.max(4, (w - 32) * pct / 100), 4, 2, C.ok);
+    });
+  }
+
+  function drawAll() {
+    ctx = canvases[0].getContext("2d");            // for text measuring before the first draw
+    const box = canvases[0].getBoundingClientRect();
+    if (!box.width) return;
+    // one shared scale: the tallest / widest view fills about 80% of the picture
+    const k = Math.min(...canvases.map((cv) => {
+      const [W, H] = geom(cv.dataset.view);
+      return Math.min(box.width * .86 / W, box.height * .8 / H);
+    }));
+    canvases.forEach((cv) => draw(cv, cv.dataset.view, k));
+  }
+
+  drawAll();
+  if (document.fonts) document.fonts.ready.then(drawAll);
+  let queued = false;
+  window.addEventListener("resize", () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; drawAll(); });
+  });
+})();
+</script>
+
+<script>
+// "Light" card: the numbers in the process list drift inside their ranges, like a live monitor.
+(() => {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cells = [...document.querySelectorAll("#gif-light [data-cpu], #gif-light [data-mem]")];
+  const pick = (el, key) => { const [a, b] = el.dataset[key].split(",").map(Number); return a + Math.random() * (b - a); };
+  setInterval(() => {
+    for (const el of cells) {
+      if (el.dataset.cpu) el.textContent = pick(el, "cpu").toFixed(1) + "%";
+      else el.textContent = Math.round(pick(el, "mem")).toLocaleString("en-US") + " MB";
+    }
+  }, 1400);
+})();
+</script>
+<script>
+// Mac / Linux visitors can't run the Windows installer yet: "Coming soon", an Instagram follow nudge, and a Windows link.
+(() => {
+  const ua = navigator.userAgent, plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
+  if (/Android|iPhone|iPad|iPod/.test(ua) || navigator.maxTouchPoints > 1) return;   // phones / tablets: leave as is
+  const os = /mac/i.test(plat) ? "Mac" : /linux/i.test(plat) ? "Linux" : null;
+  if (!os) return;
+  const btn = document.getElementById("dl-btn"), meta = document.getElementById("dl-meta");
+  const href = btn.getAttribute("href");
+  btn.removeAttribute("href");
+  btn.setAttribute("aria-disabled", "true");
+  btn.classList.add("is-soon");
+  btn.textContent = "Coming soon to " + os;
+  meta.innerHTML = 'Follow <a href="https://www.instagram.com/status.pet_official/" target="_blank" rel="noopener">' +
+    '@status.pet_official</a> on Instagram to hear when it’s ready.<br>' +
+    'Need it for a Windows PC? <a href="' + href + '">Download the Windows installer</a>';
+})();
+</script>
+</body>
+</html>
